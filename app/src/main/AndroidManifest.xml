@@ -20,6 +20,9 @@
         android:theme="@style/Theme.DriveQuest">
         <uses-library android:name="android.car" android:required="false" />
         <activity android:name=".MainActivity" android:exported="true">
+            <!-- DO declaration (all builds): keeps the read-only quest summary visible while driving.
+                 Not market approval. CarUxRestrictions still hides all interactive UI while restricted. -->
+            <meta-data android:name="distractionOptimized" android:value="true" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
