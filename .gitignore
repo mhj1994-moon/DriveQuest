@@ -1,0 +1,55 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Local IDE, build and investigation caches
+/.idea/
+/.kotlin/
+/.cache/
+/.agents/
+/.codex/
+/captures/
+**/build/
+
+# Signing keys and local credentials (never commit)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+.env
+.env.*
+!.env.example
+keystore.properties
+signing.properties
+secrets.properties
+
+# APKs are submitted only from the required apk/ directory
+*.apk
+!/apk/
+!/apk/*.apk
+/app/release/
+
+# Downloaded SDK binaries and local submission archives
+*.aar
+/*.zip
+
+# Local working notes; keep originals on this computer
+/AGENTS.md
+/Pleos 지식.md
+/PLEOS_*.md
+/DriveQuest_프로젝트_인수인계.md
+/앱개발 요구사항.md
+/docs/
