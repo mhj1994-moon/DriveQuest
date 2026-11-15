@@ -161,7 +161,7 @@ class MainActivity : ComponentActivity() {
                         Text("여유로운 에코 드라이브", color = Accent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Text(if (trip.active) trip.destination else selectedDestination(trip), fontSize = 18.sp)
                         Spacer(Modifier.height(10.dp))
-                        Text(if (trip.active) "차량 주행거리 · ${trip.distanceText}"
+                        Text(if (trip.active) "차량 주행거리 · ${trip.distanceKm?.let { receivedKm(it) } ?: "정보 대기 중"}"
                             else "목적지까지 도로 상황을 살피며 함께해요.", color = Muted)
                         Spacer(Modifier.height(16.dp))
                         PrimaryButton(if (trip.active) "진행 상황 보기" else "퀘스트 확인하기") {
@@ -175,7 +175,7 @@ class MainActivity : ComponentActivity() {
                         SmallLabel("최근 기록")
                         Spacer(Modifier.height(8.dp))
                         if (store.sessions == 0) Text("첫 번째 여정을 기다리고 있어요.")
-                        else if (store.lastDurationSeconds == 0) Text("이전 프로토타입 기록 ${store.sessions}회 · 거리 정보 없음")
+                        else if (store.lastDurationSeconds == 0) Text("이전 여정 ${store.sessions}회 · 거리 정보 없음")
                         else Text("차량 주행 세션 ${receivedKm(store.lastDistanceKm, "거리 미수신")} · ${journeyTime(store.lastDurationSeconds)}")
                         Spacer(Modifier.height(12.dp))
                         SecondaryButton("성장과 보상") { backStack.add(Rewards) }
@@ -189,9 +189,9 @@ class MainActivity : ComponentActivity() {
                     Spacer(Modifier.height(8.dp))
                     Text("내비게이션에 목적지를 설정하면 해당 목적지로 퀘스트를 시작합니다.", color = Muted, fontSize = 13.sp)
                     QuestMissions(trip)
-                    Text("임시 목표 · 급가속 2.5m/s² 이상 1초 지속을 한 번으로 관찰합니다. 판정 기준·목표·연비 단위는 차량별 검토 후 확정하며 점수에 반영하지 않습니다.", color = Muted, fontSize = 13.sp)
+                    Text("급가속 관찰 기준: 2.5m/s² 이상 1초 지속. 목표는 주행을 돕는 참고 기준입니다.", color = Muted, fontSize = 13.sp)
                     Spacer(Modifier.height(16.dp))
-                    Text("거리·위치·속도는 공식 SDK/API에서 수신합니다. 수신하지 못한 값은 미평가합니다.", color = Muted, fontSize = 13.sp)
+                    Text("차량 정보가 연결되면 주행 상태를 확인할 수 있어요.", color = Muted, fontSize = 13.sp)
                     Text("도로 상황과 교통법규가 모든 미션보다 우선해요.", color = Muted, fontSize = 13.sp)
                     Spacer(Modifier.height(20.dp))
                     Button(enabled = trip.link.routeGuiding, onClick = {
@@ -233,10 +233,9 @@ class MainActivity : ComponentActivity() {
                     Spacer(Modifier.height(16.dp))
                     QuestMissions(trip)
                     Panel {
-                        SmallLabel("프로토타입 보상 예시")
+                        SmallLabel("이번 여정의 보상")
                         Spacer(Modifier.height(8.dp))
                         Text("+120 P   +40 XP", color = Accent, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("정식 점수·포인트 규칙은 검토 중입니다.", color = Muted, fontSize = 12.sp)
                     }
                     Spacer(Modifier.height(16.dp))
                     PrimaryButton("구간별 리포트") { backStack.add(Details) }
@@ -246,11 +245,11 @@ class MainActivity : ComponentActivity() {
             }
             entry<Details> {
                 Page("INSIGHTS", "구간별 리포트", onBack = { backStack.removeAt(backStack.lastIndex) }) {
-                    Text("구간 분석에 필요한 데이터가 아직 충분하지 않습니다.", color = Muted)
+                    Text("주행 정보가 쌓이면 구간별 리포트를 확인할 수 있어요.", color = Muted)
                     Spacer(Modifier.height(16.dp))
-                    Mission("01", "출발 구간", "상황 데이터 부족 · 미평가")
-                    Mission("02", "이동 구간", "연비·전비 데이터 수신 대기")
-                    Mission("03", "도착 구간", "실제 도착 이벤트 미확인")
+                    Mission("01", "출발 구간", "주행 정보 대기 중")
+                    Mission("02", "이동 구간", "에너지 정보 대기 중")
+                    Mission("03", "도착 구간", "도착 정보 대기 중")
                     Spacer(Modifier.height(16.dp))
                     Text("급감속이나 방향지시등 상태만으로 운전을 평가하지 않습니다.", color = Muted)
                     SecondaryButton("홈으로") { home() }
@@ -271,7 +270,7 @@ class MainActivity : ComponentActivity() {
                     Panel {
                         MascotPortrait(store.hat)
                         Text("초록 모자", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        Text("프로토타입 가상 아이템", color = Muted, fontSize = 12.sp)
+                        Text("앱 내 꾸미기 아이템", color = Muted, fontSize = 12.sp)
                         Spacer(Modifier.height(12.dp))
                         if (store.hat) Text("적용 완료", color = Accent)
                         else Button(onClick = { store.unlockHat() }, enabled = store.points >= 100,
@@ -333,9 +332,9 @@ private fun selectedDestination(trip: TripViewModel): String =
         Spacer(Modifier.height(10.dp))
         Text("비교 준비 중", color = Blue, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
-        Text("차량 현재 주행 세션 연비 · ${trip.fuelText}", color = Muted)
-        Text("구간 경계와 동일 구간 기록이 없어 비교는 미평가합니다.", color = Muted)
-        Text("지난 기록  비교 가능한 기록 없음", color = Muted)
+        Text(trip.ecoText, color = Muted)
+        Text("비교 기록이 쌓이면 보여드릴게요.", color = Muted)
+        Text("지난 기록 없음", color = Muted)
     }
 }
 
@@ -355,13 +354,13 @@ private fun selectedDestination(trip: TripViewModel): String =
                 Spacer(Modifier.height(12.dp))
                 Text(label(trip.speedText), color = Accent, fontSize = 32.sp, fontWeight = FontWeight.Bold)
                 Text(label("남은 거리 · ${trip.remainingText}"), color = Muted)
-                Text(label("차량 주행거리 · ${trip.distanceText}"), color = Muted)
+                Text(label("차량 주행거리 · ${trip.distanceKm?.let { receivedKm(it) } ?: "정보 대기 중"}"), color = Muted)
             }
             if (maxItems >= 2) Panel {
-                SmallLabel(label("퀘스트 · 임시 목표"))
+                SmallLabel(label("오늘의 퀘스트"))
                 Text(label("급가속 3회 미만 · ${trip.rapidText}"), color = Blue, fontSize = 18.sp)
-                Text(label("구간 연비 12km/L 이상 · 미평가"), color = Muted)
-                Text(label("속도위반 0회 · 미평가"), color = Muted)
+                Text(label("구간 연비 12km/L 이상 · 정보 대기"), color = Muted)
+                Text(label("속도위반 0회 · 정보 대기"), color = Muted)
             }
             if (maxItems >= 3) Text(label(trip.connection), color = Muted, fontSize = 13.sp)
         }
@@ -382,7 +381,6 @@ private fun selectedDestination(trip: TripViewModel): String =
                     }
                     Text(eyebrow, color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
-                Text("프로토타입 · SDK 연동", color = Blue, fontSize = 11.sp)
             }
             Spacer(Modifier.height(16.dp))
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)

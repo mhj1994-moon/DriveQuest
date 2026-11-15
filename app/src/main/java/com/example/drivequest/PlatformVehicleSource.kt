@@ -16,6 +16,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 /** Official platform APIs only. No console, network, interpolation, or background collection. */
 class PlatformVehicleSource(
@@ -29,7 +32,23 @@ class PlatformVehicleSource(
     private val locations = context.getSystemService(LocationManager::class.java)
     private var listener: LocationListener? = null
     private var speedListener: CarPropertyManager.CarPropertyEventCallback? = null
-    private var generation = 0
+    @Volatile private var generation = 0
+    private val main = Handler(Looper.getMainLooper())
+    private var speedReader: ScheduledExecutorService? = null
+    private var latestSpeedTimestamp = -1L
+
+    private fun acceptSpeed(value: CarPropertyValue<*>, token: Int) {
+        if (generation != token || value.propertyId != VehiclePropertyIds.PERF_VEHICLE_SPEED) return
+        if (!granted(SPEED_PERMISSION)) { speed(null, "차량 속도 권한 없음"); return }
+        if (value.status != CarPropertyValue.STATUS_AVAILABLE) {
+            speed(null, "차량 속도 수신 대기"); return
+        }
+        val number = (value.value as? Float)?.let(VehicleUnits::speedKph)
+        if (number == null) { speed(null, "차량 속도 값 오류"); return }
+        if (value.timestamp < latestSpeedTimestamp) return
+        latestSpeedTimestamp = value.timestamp
+        speed(ReceivedValue(number, value.timestamp / 1_000_000), "AAOS Car API")
+    }
     private fun granted(permission: String) = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     @SuppressLint("MissingPermission")
@@ -49,6 +68,7 @@ class PlatformVehicleSource(
             car = Car.createCar(context, Handler(Looper.getMainLooper()), Car.CAR_WAIT_TIMEOUT_DO_NOT_WAIT) { connected, ready ->
                 if (generation == token) {
                     if (!ready) {
+                        speedReader?.shutdownNow(); speedReader = null
                         manager = null
                         speed(null, "차량 서비스 연결 끊김")
                     } else try {
@@ -61,12 +81,7 @@ class PlatformVehicleSource(
                         } else {
                             val callback = object : CarPropertyManager.CarPropertyEventCallback {
                                 override fun onChangeEvent(value: CarPropertyValue<*>) {
-                                    if (generation != token || value.propertyId != id) return
-                                    if (!granted(SPEED_PERMISSION)) { speed(null, "차량 속도 권한 없음"); return }
-                                    val number = (value.value as? Float)?.let(VehicleUnits::speedKph)
-                                    if (value.status == CarPropertyValue.STATUS_AVAILABLE && number != null)
-                                        speed(ReceivedValue(number, value.timestamp / 1_000_000), "AAOS Car API")
-                                    else speed(null, "차량 속도 값 없음")
+                                    acceptSpeed(value, token)
                                 }
                                 override fun onErrorEvent(propertyId: Int, areaId: Int) {
                                     if (generation == token && propertyId == id) speed(null, "차량 속도 수신 오류")
@@ -75,6 +90,28 @@ class PlatformVehicleSource(
                             speedListener = callback
                             if (!properties.registerCallback(callback, id, CarPropertyManager.SENSOR_RATE_UI))
                                 speed(null, "차량 속도 구독 실패")
+                            // Read on a worker: Binder reads may block. Keep the vehicle timestamp,
+                            // including repeated/cached values, so a successful read cannot hide stale data.
+                            speedReader?.shutdownNow()
+                            speedReader = Executors.newSingleThreadScheduledExecutor().also { reader ->
+                                reader.scheduleWithFixedDelay({
+                                    if (generation == token) {
+                                        try {
+                                            val value = properties.getProperty<Float>(id, 0)
+                                            main.post {
+                                                if (generation == token) {
+                                                    if (value != null) acceptSpeed(value, token)
+                                                    else speed(null, "차량 속도 수신 대기")
+                                                }
+                                            }
+                                        } catch (_: SecurityException) {
+                                            main.post { if (generation == token) speed(null, "차량 속도 권한 없음") }
+                                        } catch (_: Exception) {
+                                            main.post { if (generation == token) speed(null, "차량 속도 조회 재시도 중") }
+                                        }
+                                    }
+                                }, 0, 1, TimeUnit.SECONDS)
+                            }
                         }
                     } catch (_: SecurityException) { speed(null, "차량 속도 권한 없음") }
                     catch (_: Exception) { speed(null, "차량 속도 연결 실패") }
@@ -116,6 +153,8 @@ class PlatformVehicleSource(
     @Suppress("DEPRECATION")
     fun stop() {
         generation++
+        speedReader?.shutdownNow(); speedReader = null
+        latestSpeedTimestamp = -1L
         speedListener?.let { try { manager?.unregisterCallback(it) } catch (_: Exception) {} }
         speedListener = null; manager = null
         try { car?.disconnect() } catch (_: Exception) {}

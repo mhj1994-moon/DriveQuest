@@ -41,8 +41,8 @@ class TripViewModel(application: Application, private val saved: SavedStateHandl
     private var observation = QuestObservation()
     var rapidText by mutableStateOf("관찰 대기"); private set
     val fuelText get() = link.fuelEconomy?.fresh(now, 15000)?.let { "%.1f L/100km".format(it) } ?: link.fuelStatus
-    val ecoText get() = "구간 미평가 · 차량 현재 연비 $fuelText"
-    val speedingText get() = "미평가 · 제한속도 단위·유효 구간 확인 필요"
+    val ecoText get() = if (link.fuelEconomy?.fresh(now, 15000) != null) "차량 현재 연비 $fuelText · 구간 정보 대기" else "연비 정보 대기 중"
+    val speedingText get() = "제한속도 정보 확인 중"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var job: Job? = null
     private val monitor = DrivingUxMonitor(application) { ux = it }
@@ -55,8 +55,8 @@ class TripViewModel(application: Application, private val saved: SavedStateHandl
         { sample, status -> positionSample = sample; positionStatus = status; now = SystemClock.elapsedRealtime() })
 
     private fun updateQuest() {
-        rapidText = if (observation.samples < 2) "미평가 · 속도 표본 부족" else
-            "관찰 ${observation.rapidCount}회" + if (observation.incomplete) " · 누락 구간 미평가" else " · 관찰 중"
+        rapidText = if (observation.samples < 2) "주행 관찰 준비 중" else
+            "관찰 ${observation.rapidCount}회" + if (observation.incomplete) " · 일부 구간 수신 끊김" else " · 관찰 중"
     }
     fun permissionsChanged() { if (job != null) platform.start() }
     fun startForeground() {
