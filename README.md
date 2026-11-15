@@ -4,7 +4,7 @@
 
 ## 실행 방법
 
-1. [서명된 release APK](apk/문호진_DriveQuest_release.apk)를 내려받아 Pleos Connect 에뮬레이터에 설치합니다. 소스에서 실행하려면 Android Studio로 프로젝트를 열고 Gradle 동기화 후 `demo` 빌드 변형을 선택합니다.
+1. [서명된 release APK](apk/DriveQuest_release.apk)를 내려받아 Pleos Connect 에뮬레이터에 설치합니다. 소스에서 실행하려면 Android Studio로 프로젝트를 열고 Gradle 동기화 후 `demo` 빌드 변형을 선택합니다.
 2. 차량을 정차하고 기어를 P에 둔 상태에서 DriveQuest를 엽니다. 요청되는 위치·차량 속도 권한을 허용합니다.
 3. 에뮬레이터의 내비게이션 앱에서 목적지를 설정하고 경로 안내를 시작합니다.
 4. DriveQuest에서 목적지를 확인하고, 정차 상태에서 **퀘스트 확인하기 → 퀘스트 시작**을 선택합니다. 종료도 정차 상태에서 진행합니다.
@@ -34,5 +34,5 @@
 ## GitHub 저장소 및 APK 파일 위치
 
 - 저장소: [https://github.com/mhj1994-moon/DriveQuest](https://github.com/mhj1994-moon/DriveQuest)
-- 서명된 release APK: [apk/문호진_DriveQuest_release.apk](https://github.com/mhj1994-moon/DriveQuest/blob/main/apk/%EB%AC%B8%ED%98%B8%EC%A7%84_DriveQuest_release.apk)
-- 저장소 내 APK 경로: `apk/문호진_DriveQuest_release.apk`
+- 서명된 release APK: [apk/DriveQuest_release.apk](https://github.com/mhj1994-moon/DriveQuest/blob/main/apk/DriveQuest_release.apk)
+- 저장소 내 APK 경로: `apk/DriveQuest_release.apk`
